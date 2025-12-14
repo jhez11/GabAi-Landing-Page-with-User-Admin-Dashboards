@@ -19,7 +19,8 @@
     "leaflet": "^1.9.4",
     "leaflet/dist/images/marker-icon-2x.png": "latest",
     "leaflet/dist/images/marker-icon.png": "latest",
-    "leaflet/dist/images/marker-shadow.png": "latest"
+    "leaflet/dist/images/marker-shadow.png": "latest",
+    "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.18",
