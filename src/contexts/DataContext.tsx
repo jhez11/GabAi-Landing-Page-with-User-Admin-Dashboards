@@ -35,6 +35,19 @@ export interface MapLocation {
   coords: [number, number];
   description?: string;
 }
+export interface Faculty {
+  id: number;
+  name: string;
+  position: 'Dean' | 'Associate Dean' | 'Professor' | 'Associate Professor' | 'Assistant Professor' | 'Instructor';
+  department: string;
+  email: string;
+  phone: string;
+  office: string;
+  officeHours: string;
+  bio: string;
+  researchInterests: string[];
+  photo: string;
+}
 export interface ChatMessage {
   id: string;
   userId: string;
@@ -51,6 +64,7 @@ interface DataContextType {
   courses: Course[];
   scholarships: Scholarship[];
   mapLocations: MapLocation[];
+  faculty: Faculty[];
   chatHistory: ChatMessage[];
   // Department methods
   addDepartment: (dept: Omit<Department, 'id'>) => void;
@@ -68,6 +82,10 @@ interface DataContextType {
   addMapLocation: (location: Omit<MapLocation, 'id'>) => void;
   updateMapLocation: (id: number, location: Partial<MapLocation>) => void;
   deleteMapLocation: (id: number) => void;
+  // Faculty methods
+  addFaculty: (faculty: Omit<Faculty, 'id'>) => void;
+  updateFaculty: (id: number, faculty: Partial<Faculty>) => void;
+  deleteFaculty: (id: number) => void;
   // Chat methods
   saveChatMessage: (userId: string, message: any) => void;
   getChatHistory: (userId: string) => ChatMessage | undefined;
@@ -208,6 +226,79 @@ const initialMapLocations: MapLocation[] = [{
   coords: [9.04, 126.2155],
   description: 'Science and research labs'
 }];
+const initialFaculty: Faculty[] = [{
+  id: 1,
+  name: 'Dr. Maria Santos',
+  position: 'Dean',
+  department: 'College of Engineering',
+  email: 'maria.santos@nemsu.edu.ph',
+  phone: '(086) 123-4567',
+  office: 'Engineering Building, Room 201',
+  officeHours: 'Mon-Fri, 2:00 PM - 4:00 PM',
+  bio: 'Dr. Santos has over 20 years of experience in civil engineering and academic leadership. She holds a PhD in Structural Engineering from UP Diliman.',
+  researchInterests: ['Structural Engineering', 'Earthquake Engineering', 'Sustainable Construction'],
+  photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+}, {
+  id: 2,
+  name: 'Prof. James Reid',
+  position: 'Professor',
+  department: 'College of Computer Studies',
+  email: 'james.reid@nemsu.edu.ph',
+  phone: '(086) 123-4568',
+  office: 'CCS Building, Room 305',
+  officeHours: 'Tue-Thu, 10:00 AM - 12:00 PM',
+  bio: 'Professor Reid specializes in artificial intelligence and machine learning. He has published over 50 research papers in international journals.',
+  researchInterests: ['Artificial Intelligence', 'Machine Learning', 'Data Science'],
+  photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+}, {
+  id: 3,
+  name: 'Dr. Sarah Geronimo',
+  position: 'Associate Professor',
+  department: 'College of Education',
+  email: 'sarah.geronimo@nemsu.edu.ph',
+  phone: '(086) 123-4569',
+  office: 'Education Building, Room 102',
+  officeHours: 'Mon-Wed, 1:00 PM - 3:00 PM',
+  bio: 'Dr. Geronimo is an expert in curriculum development and educational psychology with 15 years of teaching experience.',
+  researchInterests: ['Curriculum Development', 'Educational Psychology', 'Teacher Training'],
+  photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+}, {
+  id: 4,
+  name: 'Engr. Juan Dela Cruz',
+  position: 'Assistant Professor',
+  department: 'College of Engineering',
+  email: 'juan.delacruz@nemsu.edu.ph',
+  phone: '(086) 123-4571',
+  office: 'Engineering Building, Room 105',
+  officeHours: 'Wed-Fri, 3:00 PM - 5:00 PM',
+  bio: 'Engr. Dela Cruz is a licensed mechanical engineer with expertise in thermodynamics and fluid mechanics.',
+  researchInterests: ['Thermodynamics', 'Fluid Mechanics', 'Renewable Energy'],
+  photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+}, {
+  id: 5,
+  name: 'Ms. Anna Reyes',
+  position: 'Instructor',
+  department: 'College of Computer Studies',
+  email: 'anna.reyes@nemsu.edu.ph',
+  phone: '(086) 123-4572',
+  office: 'CCS Building, Room 201',
+  officeHours: 'Mon-Fri, 9:00 AM - 11:00 AM',
+  bio: "Ms. Reyes teaches programming fundamentals and web development. She is currently pursuing her master's degree.",
+  researchInterests: ['Web Development', 'Mobile Applications', 'UI/UX Design'],
+  photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+}, {
+  id: 6,
+  name: 'Dr. Roberto Cruz',
+  position: 'Professor',
+  department: 'College of Business & Management',
+  email: 'roberto.cruz@nemsu.edu.ph',
+  phone: '(086) 123-4573',
+  office: 'Business Building, Room 301',
+  officeHours: 'Tue-Thu, 2:00 PM - 4:00 PM',
+  bio: 'Dr. Cruz has extensive experience in financial management and corporate strategy. He previously worked as a CFO for a multinational company.',
+  researchInterests: ['Financial Management', 'Corporate Strategy', 'Investment Analysis'],
+  photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+}];
 export function DataProvider({
   children
 }: {
@@ -229,6 +320,10 @@ export function DataProvider({
     const stored = localStorage.getItem('gabai_map_locations');
     return stored ? JSON.parse(stored) : initialMapLocations;
   });
+  const [faculty, setFaculty] = useState<Faculty[]>(() => {
+    const stored = localStorage.getItem('gabai_faculty');
+    return stored ? JSON.parse(stored) : initialFaculty;
+  });
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
     const stored = localStorage.getItem('gabai_chat_history');
     return stored ? JSON.parse(stored) : [];
@@ -246,6 +341,9 @@ export function DataProvider({
   useEffect(() => {
     localStorage.setItem('gabai_map_locations', JSON.stringify(mapLocations));
   }, [mapLocations]);
+  useEffect(() => {
+    localStorage.setItem('gabai_faculty', JSON.stringify(faculty));
+  }, [faculty]);
   useEffect(() => {
     localStorage.setItem('gabai_chat_history', JSON.stringify(chatHistory));
   }, [chatHistory]);
@@ -317,6 +415,23 @@ export function DataProvider({
   const deleteMapLocation = (id: number) => {
     setMapLocations(mapLocations.filter(l => l.id !== id));
   };
+  // Faculty methods
+  const addFaculty = (facultyMember: Omit<Faculty, 'id'>) => {
+    const newFaculty = {
+      ...facultyMember,
+      id: Math.max(0, ...faculty.map(f => f.id)) + 1
+    };
+    setFaculty([...faculty, newFaculty]);
+  };
+  const updateFaculty = (id: number, updates: Partial<Faculty>) => {
+    setFaculty(faculty.map(f => f.id === id ? {
+      ...f,
+      ...updates
+    } : f));
+  };
+  const deleteFaculty = (id: number) => {
+    setFaculty(faculty.filter(f => f.id !== id));
+  };
   // Chat methods
   const saveChatMessage = (userId: string, message: any) => {
     setChatHistory(prev => {
@@ -345,6 +460,7 @@ export function DataProvider({
     courses,
     scholarships,
     mapLocations,
+    faculty,
     chatHistory,
     addDepartment,
     updateDepartment,
@@ -358,6 +474,9 @@ export function DataProvider({
     addMapLocation,
     updateMapLocation,
     deleteMapLocation,
+    addFaculty,
+    updateFaculty,
+    deleteFaculty,
     saveChatMessage,
     getChatHistory
   }}>

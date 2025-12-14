@@ -6,6 +6,7 @@ import { Departments } from '../components/modules/Departments';
 import { Courses } from '../components/modules/Courses';
 import { Scholarships } from '../components/modules/Scholarships';
 import { CampusMap } from '../components/modules/CampusMap';
+import { Faculty } from '../components/modules/Faculty';
 import { Settings } from '../components/modules/Settings';
 export function UserDashboard() {
   return <Routes>
@@ -15,6 +16,7 @@ export function UserDashboard() {
       <Route path="departments" element={<Departments />} />
       <Route path="courses" element={<Courses />} />
       <Route path="scholarships" element={<Scholarships />} />
+      <Route path="faculty" element={<Faculty />} />
       <Route path="map" element={<CampusMap />} />
       <Route path="settings" element={<Settings />} />
     </Routes>;

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, AlertCircle, Bot, ArrowLeft, User } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowLeft, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Logo } from '../components/ui/Logo';
 export function LoginPage() {
   const navigate = useNavigate();
   const {
@@ -13,6 +14,7 @@ export function LoginPage() {
     register
   } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -27,7 +29,6 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        // Registration
         if (formData.password !== formData.confirmPassword) {
           setError('Passwords do not match');
           setIsLoading(false);
@@ -40,13 +41,11 @@ export function LoginPage() {
         }
         const success = await register(formData.name, formData.email, formData.password);
         if (success) {
-          // Auto-login after registration
           await login(formData.email, formData.password);
         } else {
           setError('Email already exists');
         }
       } else {
-        // Login
         const success = await login(formData.email, formData.password);
         if (!success) {
           setError('Invalid email or password');
@@ -65,25 +64,48 @@ export function LoginPage() {
     }));
     setError('');
   };
-  return <div className="min-h-screen bg-background flex flex-col">
+  return <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      {/* Animated circuit background */}
+      <div className="absolute inset-0 opacity-5">
+        <svg className="w-full h-full" viewBox="0 0 1000 1000">
+          <motion.path d="M 0 500 L 200 500 L 200 300 L 400 300 L 400 500 L 600 500" stroke="hsl(var(--primary))" strokeWidth="2" fill="none" initial={{
+          pathLength: 0
+        }} animate={{
+          pathLength: 1
+        }} transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: 'linear'
+        }} />
+          <motion.path d="M 1000 500 L 800 500 L 800 700 L 600 700 L 600 500 L 400 500" stroke="hsl(var(--primary))" strokeWidth="2" fill="none" initial={{
+          pathLength: 0
+        }} animate={{
+          pathLength: 1
+        }} transition={{
+          duration: 3,
+          delay: 1.5,
+          repeat: Infinity,
+          ease: 'linear'
+        }} />
+        </svg>
+      </div>
+
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm font-medium">Back to Home</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              G
-            </div>
+            <Logo variant="icon" size="md" color="hsl(var(--primary))" />
             <span className="text-xl font-bold tracking-tight">GabAi</span>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4 relative z-10">
         <motion.div initial={{
         opacity: 0,
         y: 20
@@ -93,13 +115,22 @@ export function LoginPage() {
       }} transition={{
         duration: 0.4
       }} className="w-full max-w-md">
-          <Card className="shadow-xl">
-            <CardHeader className="space-y-1 pb-6">
-              <div className="flex justify-center mb-4">
-                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="h-8 w-8 text-primary" />
-                </div>
-              </div>
+          <Card className="shadow-xl relative overflow-hidden">
+            {/* Circuit animation connecting to form */}
+            <motion.div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" initial={{
+            opacity: 0,
+            scale: 0
+          }} animate={{
+            opacity: 1,
+            scale: 1
+          }} transition={{
+            delay: 0.3,
+            duration: 0.5
+          }}>
+              <Logo variant="full" size="lg" animated color="hsl(var(--primary))" />
+            </motion.div>
+
+            <CardHeader className="space-y-1 pb-6 pt-16">
               <CardTitle className="text-2xl text-center">
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
               </CardTitle>
@@ -154,7 +185,7 @@ export function LoginPage() {
 
                 <Input label="Email Address" name="email" type="email" placeholder="your.email@nemsu.edu.ph" value={formData.email} onChange={handleChange} icon={<Mail className="h-4 w-4" />} required />
 
-                <Input label="Password" name="password" type="password" placeholder={isSignUp ? 'At least 6 characters' : 'Enter your password'} value={formData.password} onChange={handleChange} icon={<Lock className="h-4 w-4" />} required />
+                <Input label="Password" name="password" type={showPassword ? 'text' : 'password'} placeholder={isSignUp ? 'At least 6 characters' : 'Enter your password'} value={formData.password} onChange={handleChange} icon={<Lock className="h-4 w-4" />} rightIcon={showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />} onRightIconClick={() => setShowPassword(!showPassword)} required />
 
                 <AnimatePresence mode="wait">
                   {isSignUp && <motion.div initial={{
@@ -167,7 +198,7 @@ export function LoginPage() {
                   opacity: 0,
                   height: 0
                 }}>
-                      <Input label="Confirm Password" name="confirmPassword" type="password" placeholder="Re-enter your password" value={formData.confirmPassword} onChange={handleChange} icon={<Lock className="h-4 w-4" />} required />
+                      <Input label="Confirm Password" name="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Re-enter your password" value={formData.confirmPassword} onChange={handleChange} icon={<Lock className="h-4 w-4" />} required />
                     </motion.div>}
                 </AnimatePresence>
 

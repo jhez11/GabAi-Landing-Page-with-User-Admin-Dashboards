@@ -7,6 +7,7 @@ import { DepartmentCRUD } from '../components/modules/admin/DepartmentCRUD';
 import { CourseCRUD } from '../components/modules/admin/CourseCRUD';
 import { ScholarshipCRUD } from '../components/modules/admin/ScholarshipCRUD';
 import { MapCRUD } from '../components/modules/admin/MapCRUD';
+import { FacultyCRUD } from '../components/modules/admin/FacultyCRUD';
 export function AdminDashboard() {
   return <Routes>
       <Route path="/" element={<AdminDashboardHome />} />
@@ -16,5 +17,6 @@ export function AdminDashboard() {
       <Route path="courses" element={<CourseCRUD />} />
       <Route path="scholarships" element={<ScholarshipCRUD />} />
       <Route path="map" element={<MapCRUD />} />
+      <Route path="faculty" element={<FacultyCRUD />} />
     </Routes>;
 }

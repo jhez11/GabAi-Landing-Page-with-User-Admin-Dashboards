@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, MessageSquare, Clock, Trash2 } from 'lucide-react';
+import { Search, MessageSquare, Clock, Trash2, Plus } from 'lucide-react';
 import { Card, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -35,6 +35,26 @@ export function ChatHistory() {
       })));
     }
   };
+  const createNewChat = () => {
+    if (!user?.id) return;
+    const newSession: ChatSession = {
+      id: Date.now().toString(),
+      title: 'New Conversation',
+      messages: [{
+        id: '1',
+        text: "Hello! I'm GabAi, your NEMSU AI Assistant. How can I help you today?",
+        sender: 'bot',
+        timestamp: new Date()
+      }],
+      createdAt: new Date(),
+      lastUpdated: new Date()
+    };
+    // Add to existing sessions
+    const updatedSessions = [newSession, ...sessions];
+    localStorage.setItem(`gabai_chat_sessions_${user.id}`, JSON.stringify(updatedSessions));
+    // Navigate to chatbot
+    navigate('/dashboard/chatbot');
+  };
   const deleteSession = (sessionId: string) => {
     if (confirm('Delete this conversation?')) {
       const newSessions = sessions.filter(s => s.id !== sessionId);
@@ -62,8 +82,14 @@ export function ChatHistory() {
             Review your past conversations with GabAi.
           </p>
         </div>
-        <div className="w-full sm:w-72">
-          <Input placeholder="Search conversations..." icon={<Search className="h-4 w-4" />} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex-1 sm:flex-initial sm:w-72">
+            <Input placeholder="Search conversations..." icon={<Search className="h-4 w-4" />} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+          <Button onClick={createNewChat} className="shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
+            New Chat
+          </Button>
         </div>
       </div>
 
@@ -107,7 +133,8 @@ export function ChatHistory() {
             </motion.div>) : <div className="text-center py-12 text-muted-foreground">
             <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <p>No conversations yet</p>
-            <Button className="mt-4" onClick={() => navigate('/dashboard/chatbot')}>
+            <Button className="mt-4" onClick={createNewChat}>
+              <Plus className="h-4 w-4 mr-2" />
               Start a Conversation
             </Button>
           </div>}

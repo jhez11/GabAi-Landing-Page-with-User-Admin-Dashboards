@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Component } from 'react';
-import { Search, UserPlus, Trash2, Edit, Shield, User as UserIcon } from 'lucide-react';
+import { Search, UserPlus, Trash2, Edit, Shield, User as UserIcon, Building2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/Card';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
@@ -11,6 +11,7 @@ interface RegisteredUser {
   name: string;
   email: string;
   role: 'user' | 'admin';
+  department?: string;
   avatar?: string;
   createdAt: string;
 }
@@ -22,7 +23,8 @@ export function UserManagement() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'user' as 'user' | 'admin'
+    role: 'user' as 'user' | 'admin',
+    department: ''
   });
   useEffect(() => {
     loadUsers();
@@ -34,18 +36,20 @@ export function UserManagement() {
       name: u.user.name,
       email: u.user.email,
       role: u.user.role,
+      department: u.user.department || '',
       avatar: u.user.avatar,
       createdAt: new Date().toISOString()
     }));
     setUsers(formattedUsers);
   };
-  const filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()) || user.department && user.department.toLowerCase().includes(searchTerm.toLowerCase()));
   const handleAdd = () => {
     setEditingUser(null);
     setFormData({
       name: '',
       email: '',
-      role: 'user'
+      role: 'user',
+      department: ''
     });
     setIsModalOpen(true);
   };
@@ -54,7 +58,8 @@ export function UserManagement() {
     setFormData({
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      department: user.department || ''
     });
     setIsModalOpen(true);
   };
@@ -77,7 +82,8 @@ export function UserManagement() {
           ...u.user,
           name: formData.name,
           email: formData.email,
-          role: formData.role
+          role: formData.role,
+          department: formData.department
         }
       } : u);
       localStorage.setItem('gabai_registered_users', JSON.stringify(updated));
@@ -91,6 +97,7 @@ export function UserManagement() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
+          department: formData.department,
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`
         }
       };
@@ -140,6 +147,9 @@ export function UserManagement() {
                         Role
                       </th>
                       <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Department
+                      </th>
+                      <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -177,7 +187,10 @@ export function UserManagement() {
                             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                           </span>
                         </td>
-                        <td className="hidden md:table-cell px-4 py-4">
+                        <td className="hidden md:table-cell px-4 py-4 text-sm text-muted-foreground">
+                          {user.department || '-'}
+                        </td>
+                        <td className="hidden lg:table-cell px-4 py-4">
                           <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                             Active
                           </span>
@@ -226,6 +239,12 @@ export function UserManagement() {
               <option value="admin">Admin</option>
             </select>
           </div>
+
+          <Input label="Department" value={formData.department} onChange={e => setFormData({
+          ...formData,
+          department: e.target.value
+        })} placeholder="College of Computer Studies" icon={<Building2 className="h-4 w-4" />} />
+
           {!editingUser && <p className="text-xs text-muted-foreground">
               Default password will be set to:{' '}
               <code className="bg-muted px-1 py-0.5 rounded">password123</code>

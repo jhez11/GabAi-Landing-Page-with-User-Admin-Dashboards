@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Icon } from 'leaflet';
-import { Map as MapIcon, Navigation } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
+import { Icon, DivIcon } from 'leaflet';
+import { Map as MapIcon, Navigation, MapPin } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 import 'leaflet/dist/leaflet.css';
 // Fix for default marker icon in React Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -42,6 +43,34 @@ const locations = [{
   coords: [9.04, 126.2155],
   type: 'Academic'
 }];
+// Custom blue dot icon for user location
+const userLocationIcon = new DivIcon({
+  className: 'user-location-marker',
+  html: `
+    <div style="position: relative; width: 20px; height: 20px;">
+      <div style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: #3b82f6;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      "></div>
+      <div style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: #3b82f6;
+        border-radius: 50%;
+        opacity: 0.3;
+        animation: pulse 2s ease-out infinite;
+      "></div>
+    </div>
+  `,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10]
+});
 function MapController({
   center
 }: {
@@ -53,8 +82,70 @@ function MapController({
   }, [center, map]);
   return null;
 }
+function UserLocationMarker() {
+  const [position, setPosition] = useState<[number, number] | null>(null);
+  const [accuracy, setAccuracy] = useState<number>(0);
+  const map = useMap();
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      console.log('Geolocation is not supported by your browser');
+      return;
+    }
+    const watchId = navigator.geolocation.watchPosition(pos => {
+      const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+      setPosition(newPosition);
+      setAccuracy(pos.coords.accuracy);
+    }, error => {
+      console.error('Error getting location:', error);
+    }, {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0
+    });
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [map]);
+  if (!position) return null;
+  return <>
+      <Circle center={position} radius={accuracy} pathOptions={{
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.1,
+      weight: 1
+    }} />
+      <Marker position={position} icon={userLocationIcon}>
+        <Popup>
+          <div className="p-1">
+            <h3 className="font-bold text-sm flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              Your Location
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Accuracy: ±{Math.round(accuracy)}m
+            </p>
+          </div>
+        </Popup>
+      </Marker>
+    </>;
+}
 export function CampusMap() {
   const [activeLocation, setActiveLocation] = useState<[number, number]>(CENTER_COORDS);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const centerOnUser = () => {
+    if (userLocation) {
+      setActiveLocation(userLocation);
+    } else {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(newPosition);
+        setActiveLocation(newPosition);
+      }, error => {
+        console.error('Error getting location:', error);
+        alert('Unable to get your location. Please enable location services.');
+      });
+    }
+  };
   return <div className="space-y-6 h-[calc(100vh-140px)] flex flex-col">
       <div className="flex justify-between items-center shrink-0">
         <div>
@@ -63,6 +154,10 @@ export function CampusMap() {
             Navigate NEMSU campus locations.
           </p>
         </div>
+        <Button onClick={centerOnUser} variant="outline" size="sm">
+          <Navigation className="h-4 w-4 mr-2" />
+          My Location
+        </Button>
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
@@ -73,6 +168,7 @@ export function CampusMap() {
         }} scrollWheelZoom={false}>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <MapController center={activeLocation} />
+            <UserLocationMarker />
 
             {locations.map(loc => <Marker key={loc.id} position={loc.coords as [number, number]}>
                 <Popup>
@@ -104,5 +200,22 @@ export function CampusMap() {
             </button>)}
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 0.3;
+          }
+          50% {
+            transform: scale(2);
+            opacity: 0;
+          }
+          100% {
+            transform: scale(2);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>;
 }

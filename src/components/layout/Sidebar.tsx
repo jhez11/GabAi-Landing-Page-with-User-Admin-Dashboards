@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Building2, GraduationCap, Award, Map, Settings, Users, Database, LogOut, ChevronLeft, ChevronRight, X, Bot } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Building2, GraduationCap, Award, Map, Settings, Users, Database, LogOut, ChevronLeft, ChevronRight, X, Bot, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
+import { Logo } from '../ui/Logo';
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -29,6 +30,10 @@ export function Sidebar({
     icon: MessageSquare,
     label: 'Chat History',
     to: '/dashboard/chat'
+  }, {
+    icon: UserCircle,
+    label: 'Faculty',
+    to: '/dashboard/faculty'
   }, {
     icon: Building2,
     label: 'Departments',
@@ -58,6 +63,10 @@ export function Sidebar({
     icon: Users,
     label: 'User Management',
     to: '/admin/users'
+  }, {
+    icon: UserCircle,
+    label: 'Faculty Management',
+    to: '/admin/faculty'
   }, {
     icon: Building2,
     label: 'Manage Departments',
@@ -89,16 +98,16 @@ export function Sidebar({
       {/* Logo Area */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-border">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-            G
-          </div>
-          {isOpen && <motion.span initial={{
+          {isOpen ? <motion.div className="flex items-center gap-3" initial={{
           opacity: 0
         }} animate={{
           opacity: 1
-        }} className="font-bold text-lg whitespace-nowrap">
-              GabAi
-            </motion.span>}
+        }} transition={{
+          delay: 0.2
+        }}>
+              <Logo variant="icon" size="md" color="hsl(var(--primary))" />
+              <span className="font-bold text-lg whitespace-nowrap">GabAi</span>
+            </motion.div> : <Logo variant="icon" size="md" color="hsl(var(--primary))" />}
         </div>
         {isMobile ? <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
             <X className="h-4 w-4" />

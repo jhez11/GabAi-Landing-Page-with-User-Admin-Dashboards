@@ -6,6 +6,7 @@ interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  department?: string;
 }
 interface AuthContextType {
   user: User | null;
@@ -14,6 +15,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (updates: Partial<User>) => Promise<boolean>;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Built-in admin account (hidden from users)
@@ -105,6 +107,38 @@ export function AuthProvider({
     setIsLoading(false);
     return false;
   };
+  const updateProfile = async (updates: Partial<User>): Promise<boolean> => {
+    if (!user) return false;
+    setIsLoading(true);
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Update user object
+      const updatedUser = {
+        ...user,
+        ...updates
+      };
+      // Update localStorage
+      localStorage.setItem('gabai_user', JSON.stringify(updatedUser));
+      // Update registered users list if not admin
+      if (user.role !== 'admin') {
+        const registeredUsers = JSON.parse(localStorage.getItem('gabai_registered_users') || '[]');
+        const updatedUsers = registeredUsers.map((u: any) => u.user.id === user.id ? {
+          ...u,
+          user: updatedUser
+        } : u);
+        localStorage.setItem('gabai_registered_users', JSON.stringify(updatedUsers));
+      }
+      // Update state
+      setUser(updatedUser);
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setIsLoading(false);
+      return false;
+    }
+  };
   const logout = () => {
     setUser(null);
     localStorage.removeItem('gabai_user');
@@ -116,7 +150,8 @@ export function AuthProvider({
     isLoading,
     login,
     register,
-    logout
+    logout,
+    updateProfile
   }}>
       {children}
     </AuthContext.Provider>;
