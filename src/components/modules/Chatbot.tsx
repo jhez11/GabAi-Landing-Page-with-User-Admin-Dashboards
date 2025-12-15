@@ -1,67 +1,9 @@
-import React, { useEffect, useState, useRef, Component } from 'react';
-import { Send, Paperclip, Mic, X, Download, ChevronDown, Pause, Play, FileText, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Send, Paperclip, Mic, X, Download, ChevronDown, Pause, Play, FileText, Image as ImageIcon, MicOff, Plus, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  attachments?: Array<{
-    type: 'image' | 'file' | 'audio';
-    url: string;
-    name: string;
-    duration?: number;
-  }>;
-}
-interface ChatSession {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Date;
-  lastUpdated: Date;
-}
-// Dedicated Image Component for sophisticated loading and hover effects
-const ChatImage = ({
-  src,
-  alt,
-  onClick
-}: {
-  src: string;
-  alt: string;
-  onClick: () => void;
-}) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  return <motion.div className="relative overflow-hidden rounded-xl cursor-pointer group" style={{
-    maxWidth: '400px',
-    maxHeight: '300px'
-  }} whileHover={{
-    scale: 1.02
-  }} transition={{
-    duration: 0.3,
-    ease: 'easeOut'
-  }} onClick={onClick}>
-      {/* Blur placeholder background */}
-      <div className="absolute inset-0 bg-muted/20 backdrop-blur-xl" />
-
-      <motion.img src={src} alt={alt} onLoad={() => setIsLoaded(true)} initial={{
-      opacity: 0,
-      filter: 'blur(10px)'
-    }} animate={{
-      opacity: isLoaded ? 1 : 0,
-      filter: isLoaded ? 'blur(0px)' : 'blur(10px)'
-    }} transition={{
-      duration: 0.5
-    }} className="w-full h-full object-cover shadow-sm group-hover:shadow-md transition-shadow duration-300" style={{
-      maxHeight: '300px',
-      width: 'auto',
-      objectFit: 'cover'
-    }} />
-
-      {/* Hover overlay hint */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-    </motion.div>;
-};
+import { useChat, Message } from '../../contexts/ChatContext';
 const getMockResponse = (userMessage: string): string => {
   const lowerMessage = userMessage.toLowerCase();
   if (lowerMessage.includes('engineering') || lowerMessage.includes('college')) {
@@ -85,8 +27,13 @@ export function Chatbot() {
   const {
     user
   } = useAuth();
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const {
+    currentSession,
+    isLoading: sessionLoading,
+    addMessage,
+    createNewSession,
+    clearCurrentSession
+  } = useChat();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [attachments, setAttachments] = useState<Array<{
@@ -109,35 +56,6 @@ export function Chatbot() {
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
-  const currentSession = sessions.find(s => s.id === currentSessionId);
-  // Load sessions
-  useEffect(() => {
-    if (!user?.id) return;
-    try {
-      const stored = localStorage.getItem(`gabai_chat_sessions_${user.id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSessions(parsed);
-        if (parsed.length > 0 && !currentSessionId) {
-          setCurrentSessionId(parsed[0].id);
-        }
-      } else {
-        createNewChat();
-      }
-    } catch (error) {
-      console.error('Error loading chat sessions:', error);
-      createNewChat();
-    }
-  }, [user?.id]);
-  // Save sessions
-  useEffect(() => {
-    if (!user?.id || sessions.length === 0) return;
-    try {
-      localStorage.setItem(`gabai_chat_sessions_${user.id}`, JSON.stringify(sessions));
-    } catch (error) {
-      console.error('Error saving chat sessions:', error);
-    }
-  }, [sessions, user?.id]);
   // Scroll handling
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -157,23 +75,6 @@ export function Chatbot() {
       behavior: 'smooth'
     });
   };
-  const createNewChat = () => {
-    const newSession: ChatSession = {
-      id: Date.now().toString(),
-      title: 'New Conversation',
-      messages: [{
-        id: '1',
-        text: "Hello! I'm GabAi, your NEMSU AI Assistant. How can I help you today?",
-        sender: 'bot',
-        timestamp: new Date()
-      }],
-      createdAt: new Date(),
-      lastUpdated: new Date()
-    };
-    setSessions(prev => [newSession, ...prev]);
-    setCurrentSessionId(newSession.id);
-  };
-  // Drag and drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -221,7 +122,6 @@ export function Chatbot() {
       reader.readAsDataURL(file);
     });
   };
-  // Voice recording handlers
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -302,7 +202,6 @@ export function Chatbot() {
   };
   const handleSend = async () => {
     if (!inputValue.trim() && attachments.length === 0) return;
-    if (!currentSessionId) return;
     const userMessage: Message = {
       id: Date.now().toString(),
       text: inputValue,
@@ -310,12 +209,7 @@ export function Chatbot() {
       timestamp: new Date(),
       attachments: attachments.length > 0 ? [...attachments] : undefined
     };
-    setSessions(prev => prev.map(session => session.id === currentSessionId ? {
-      ...session,
-      messages: [...session.messages, userMessage],
-      title: session.messages.length === 1 ? inputValue.slice(0, 50) : session.title,
-      lastUpdated: new Date()
-    } : session));
+    addMessage(userMessage);
     setInputValue('');
     setAttachments([]);
     setIsTyping(true);
@@ -327,11 +221,7 @@ export function Chatbot() {
       timestamp: new Date()
     };
     setIsTyping(false);
-    setSessions(prev => prev.map(session => session.id === currentSessionId ? {
-      ...session,
-      messages: [...session.messages, botResponse],
-      lastUpdated: new Date()
-    } : session));
+    addMessage(botResponse);
   };
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -394,6 +284,24 @@ export function Chatbot() {
       </div>;
   }
   return <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto relative" onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      {/* Header with New Chat button */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold text-sm">
+            {currentSession?.title || 'New Conversation'}
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            {currentSession?.messages.length || 0} messages
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => createNewSession()} className="h-8">
+            <Plus className="h-4 w-4 mr-1" />
+            New Chat
+          </Button>
+        </div>
+      </div>
+
       {/* Drag overlay */}
       <AnimatePresence>
         {isDragging && <motion.div initial={{
@@ -413,91 +321,121 @@ export function Chatbot() {
           </motion.div>}
       </AnimatePresence>
 
-      {/* Messages Area */}
+      {/* Messages Area with loading state */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="space-y-6">
-          <AnimatePresence initial={false}>
-            {currentSession?.messages.map((message, index) => <motion.div key={message.id} initial={{
+        <AnimatePresence mode="wait">
+          {sessionLoading ? <motion.div key="loading" initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} exit={{
+          opacity: 0
+        }} className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+                <p className="text-sm text-muted-foreground">
+                  Loading session...
+                </p>
+              </div>
+            </motion.div> : <motion.div key={currentSession?.id || 'empty'} initial={{
+          opacity: 0,
+          y: 10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} exit={{
+          opacity: 0,
+          y: -10
+        }} transition={{
+          duration: 0.2
+        }} className="space-y-6">
+              <AnimatePresence initial={false}>
+                {currentSession?.messages.map((message, index) => <motion.div key={message.id} initial={{
+              opacity: 0,
+              y: 5
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} exit={{
+              opacity: 0,
+              scale: 0.95
+            }} transition={{
+              duration: 0.2,
+              delay: index * 0.03
+            }} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] ${message.sender === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
+                      {message.attachments && message.attachments.length > 0 && <div className={`flex flex-col gap-2 w-full ${message.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                            {message.attachments.map((att, i) => <div key={i} className="overflow-hidden">
+                                {att.type === 'image' ? <img src={att.url} alt={att.name} className="max-w-sm max-h-[300px] object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-border shadow-sm" onClick={() => setLightboxImage(att.url)} /> : att.type === 'audio' ? <div className="flex items-center gap-3 bg-muted rounded-lg p-3 min-w-[200px] border border-border">
+                                    <button onClick={() => setPlayingAudio(playingAudio === att.url ? null : att.url)} className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
+                                      {playingAudio === att.url ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                                    </button>
+                                    <div className="flex-1">
+                                      <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary w-0" />
+                                      </div>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatTime(att.duration || 0)}
+                                    </span>
+                                  </div> : <div className="flex items-center gap-3 bg-card rounded-lg p-3 border border-border shadow-sm max-w-xs">
+                                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                      <FileText className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">
+                                        {att.name}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Attachment
+                                      </p>
+                                    </div>
+                                    <button className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                      <Download className="h-4 w-4" />
+                                    </button>
+                                  </div>}
+                              </div>)}
+                          </div>}
+                      {message.text && <div className={`rounded-2xl px-5 py-3.5 shadow-sm ${message.sender === 'bot' ? 'bg-card border border-border text-foreground rounded-tl-none' : 'bg-primary text-primary-foreground rounded-tr-none'}`}>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {message.text}
+                          </p>
+                        </div>}
+                      <span className="text-[10px] text-muted-foreground px-1 opacity-70">
+                        {new Date(message.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                      </span>
+                    </div>
+                  </motion.div>)}
+              </AnimatePresence>
+
+              {isTyping && <motion.div initial={{
             opacity: 0,
             y: 5
           }} animate={{
             opacity: 1,
             y: 0
-          }} transition={{
-            duration: 0.2
-          }} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${message.sender === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
-                  {message.attachments && message.attachments.length > 0 && <div className={`flex flex-col gap-2 w-full ${message.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                      {message.attachments.map((att, i) => <div key={i} className="overflow-hidden">
-                          {att.type === 'image' ? <ChatImage src={att.url} alt={att.name} onClick={() => setLightboxImage(att.url)} /> : att.type === 'audio' ? <div className="flex items-center gap-3 bg-muted rounded-lg p-3 min-w-[200px] border border-border">
-                              <button onClick={() => setPlayingAudio(playingAudio === att.url ? null : att.url)} className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
-                                {playingAudio === att.url ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-                              </button>
-                              <div className="flex-1">
-                                <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary w-0" />
-                                </div>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {formatTime(att.duration || 0)}
-                              </span>
-                            </div> : <div className="flex items-center gap-3 bg-card rounded-lg p-3 border border-border shadow-sm max-w-xs">
-                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <FileText className="h-5 w-5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {att.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Attachment
-                                </p>
-                              </div>
-                              <button className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                <Download className="h-4 w-4" />
-                              </button>
-                            </div>}
-                        </div>)}
-                    </div>}
-                  {message.text && <div className={`rounded-2xl px-5 py-3.5 shadow-sm ${message.sender === 'bot' ? 'bg-card border border-border text-foreground rounded-tl-none' : 'bg-primary text-primary-foreground rounded-tr-none'}`}>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {message.text}
-                      </p>
-                    </div>}
-                  <span className="text-[10px] text-muted-foreground px-1 opacity-70">
-                    {new Date(message.timestamp).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-                  </span>
-                </div>
-              </motion.div>)}
-          </AnimatePresence>
+          }} className="flex justify-start">
+                  <div className="bg-card border border-border rounded-2xl rounded-tl-none px-5 py-4 shadow-sm">
+                    <div className="flex gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{
+                  animationDelay: '0ms'
+                }} />
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{
+                  animationDelay: '150ms'
+                }} />
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{
+                  animationDelay: '300ms'
+                }} />
+                    </div>
+                  </div>
+                </motion.div>}
 
-          {isTyping && <motion.div initial={{
-          opacity: 0,
-          y: 5
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} className="flex justify-start">
-              <div className="bg-card border border-border rounded-2xl rounded-tl-none px-5 py-4 shadow-sm">
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{
-                animationDelay: '0ms'
-              }} />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{
-                animationDelay: '150ms'
-              }} />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{
-                animationDelay: '300ms'
-              }} />
-                </div>
-              </div>
+              <div ref={messagesEndRef} />
             </motion.div>}
-
-          <div ref={messagesEndRef} />
-        </div>
+        </AnimatePresence>
       </div>
 
       {/* Scroll to bottom button */}
@@ -589,7 +527,7 @@ export function Chatbot() {
         </div>
       </div>
 
-      {/* Enhanced Lightbox */}
+      {/* Lightbox */}
       <AnimatePresence>
         {lightboxImage && <motion.div initial={{
         opacity: 0
@@ -597,28 +535,11 @@ export function Chatbot() {
         opacity: 1
       }} exit={{
         opacity: 0
-      }} transition={{
-        duration: 0.2
-      }} onClick={() => setLightboxImage(null)} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-10">
-            <motion.div initial={{
-          scale: 0.9,
-          opacity: 0
-        }} animate={{
-          scale: 1,
-          opacity: 1
-        }} exit={{
-          scale: 0.9,
-          opacity: 0
-        }} transition={{
-          type: 'spring',
-          damping: 25,
-          stiffness: 300
-        }} className="relative max-w-full max-h-full" onClick={e => e.stopPropagation()}>
-              <img src={lightboxImage} alt="Preview" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
-              <button onClick={() => setLightboxImage(null)} className="absolute -top-12 right-0 md:-right-12 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors backdrop-blur-md">
-                <X className="h-6 w-6" />
-              </button>
-            </motion.div>
+      }} onClick={() => setLightboxImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
+            <img src={lightboxImage} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+            <button onClick={() => setLightboxImage(null)} className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+              <X className="h-6 w-6" />
+            </button>
           </motion.div>}
       </AnimatePresence>
     </div>;

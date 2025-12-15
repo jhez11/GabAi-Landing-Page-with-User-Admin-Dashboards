@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
+import { ChatProvider } from './contexts/ChatContext';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
@@ -39,24 +40,26 @@ export function App() {
   return <ThemeProvider defaultTheme="system" storageKey="gabai-theme">
       <AuthProvider>
         <DataProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
+          <ChatProvider>
+            <Router>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-              <Route path="/dashboard/*" element={<ProtectedRoute requiredRole="user">
-                    <DashboardLayout />
-                  </ProtectedRoute>}>
-                <Route path="*" element={<UserDashboard />} />
-              </Route>
+                <Route path="/dashboard/*" element={<ProtectedRoute requiredRole="user">
+                      <DashboardLayout />
+                    </ProtectedRoute>}>
+                  <Route path="*" element={<UserDashboard />} />
+                </Route>
 
-              <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin">
-                    <DashboardLayout />
-                  </ProtectedRoute>}>
-                <Route path="*" element={<AdminDashboard />} />
-              </Route>
-            </Routes>
-          </Router>
+                <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin">
+                      <DashboardLayout />
+                    </ProtectedRoute>}>
+                  <Route path="*" element={<AdminDashboard />} />
+                </Route>
+              </Routes>
+            </Router>
+          </ChatProvider>
         </DataProvider>
       </AuthProvider>
     </ThemeProvider>;
